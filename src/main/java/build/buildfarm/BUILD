@@ -605,13 +605,15 @@ java_binary(
 )
 
 container_image(
-    name = "buildfarm-shard-worker.container",
-    #base = "@java_image_base//image",
+    name = "rwc_buildfarm_shard_worker_image",
     base = "@rwc_build//image",
     entrypoint = [
         "/usr/bin/java",
         "-jar",
-        "buildfarm-shard-worker_deploy.jar"
+    ],
+    cmd = [
+        "buildfarm-shard-worker_deploy.jar",
+        "/config/buildfarm_shard_worker.config",
     ],
     # leverage the implicit target of the buildfarm-shard-worker to get a fat jar.
     # this is simply a workaround for the fact that we have so many dependencies,
@@ -622,6 +624,16 @@ container_image(
     ],
     tags = ["container"],
     visibility = ["//visibility:public"],
+)
+
+container_push(
+    name = "push_rwc_buildfarm_shard_worker_image",
+    format = "Docker",
+    image = ":rwc_buildfarm_shard_worker_image",
+    registry = "registry.abagy.com",
+    repository = "tools/rwc_buildfarm_shard_worker",
+    tag = "latest",
+    tags = ["container"],
 )
 
 java_library(
