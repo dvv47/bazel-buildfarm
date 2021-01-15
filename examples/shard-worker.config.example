@@ -29,20 +29,24 @@ operation_poll_period: {
   nanos: 0
 }
 
-# key/value set of defining capabilities of this worker
-# all execute requests must match perfectly with workers which
-# provide capabilities
-# so an action with a required platform: { arch: "x86_64" } must
-# match with a worker with at least { arch: "x86_64" } here
-platform: {
-  # commented out here for illustrative purposes, a default empty
-  # 'platform' is a sufficient starting point without specifying
-  # any platform requirements on the actions' side
-  ###
-  # property: {
-  #   name: "key_name"
-  #   value: "value_string"
-  # }
+dequeue_match_settings: {
+
+  # key/value set of defining capabilities of this worker
+  # all execute requests must match perfectly with workers which
+  # provide capabilities
+  # so an action with a required platform: { arch: "x86_64" } must
+  # match with a worker with at least { arch: "x86_64" } here
+  platform: {
+    # commented out here for illustrative purposes, a default empty
+    # 'platform' is a sufficient starting point without specifying
+    # any platform requirements on the actions' side
+    ###
+    # property: {
+    #   name: "key_name"
+    #   value: "value_string"
+    # }
+  }
+
 }
 
 # the worker CAS configuration
@@ -191,20 +195,13 @@ redis_shard_backplane_config: {
   # dispatching_list_name.
   queued_operations_list_name: "{Execution}:QueuedOperations"
 
-  # The redis key of a list used to ensure reliable processing of
-  # ready-to-run queue entries together with operation watch
-  # monitoring.
-  # The string contained within {} must match that of
-  # queued_operations_list_name.
-  dispatching_list_name: "{Execution}:DispatchingOperations"
-
   # A redis key prefix for operations which are being dequeued
   # from the ready-to-run queue. The key is suffixed with the
   # operation name and contains the expiration time in epoch
   # milliseconds after which the operation is considered lost.
   dispatching_prefix: "Dispatching"
 
-  # The delay in milliseconds used to populate dispathing operation
+  # The delay in milliseconds used to populate dispatching operation
   # entries
   dispatching_timeout_millis: 10000
 
