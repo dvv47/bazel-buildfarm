@@ -1,4 +1,4 @@
-load("@io_bazel_rules_docker//container:container.bzl", "container_image")
+load("@io_bazel_rules_docker//container:container.bzl", "container_image", "container_push")
 load("//:defs.bzl", "ensure_accurate_metadata")
 
 package(
@@ -65,8 +65,16 @@ java_binary(
 )
 
 container_image(
-    name = "buildfarm-shard-worker.container",
-    base = "@java_image_base//image",
+    name = "rwc_buildfarm_shard_worker_image",
+    base = "@rwc_build//image",
+    entrypoint = [
+        "/usr/bin/java",
+        "-jar",
+    ],
+    cmd = [
+        "buildfarm-shard-worker_deploy.jar",
+        "/config/buildfarm_shard_worker.config",
+    ],
     # leverage the implicit target of the buildfarm-shard-worker to get a fat jar.
     # this is simply a workaround for the fact that we have so many dependencies,
     # so we'd want some wrappy script. This seemed more straightforward.
@@ -76,6 +84,137 @@ container_image(
     ],
     tags = ["container"],
     visibility = ["//visibility:public"],
+)
+
+container_push(
+    name = "push_rwc_buildfarm_shard_worker_image",
+    format = "Docker",
+    image = ":rwc_buildfarm_shard_worker_image",
+    registry = "registry.abagy.com",
+    repository = "tools/rwc_buildfarm_shard_worker",
+    tag = "latest",
+    tags = ["container"],
+)
+
+java_library(
+    name = "worker-cgroup",
+    srcs = glob(["worker/cgroup/*.java"]),
+    deps = [
+        ":worker",
+        "@maven//:com_google_code_findbugs_jsr305",
+        "@maven//:com_google_guava_guava",
+    ],
+)
+
+java_library(
+    name = "worker-resources",
+    srcs = glob(["worker/resources/*.java"]),
+    deps = [
+        "//src/main/protobuf:build_buildfarm_v1test_buildfarm_java_proto",
+        "@maven//:com_google_guava_guava",
+        "@maven//:com_googlecode_json_simple_json_simple",
+    ],
+)
+
+java_library(
+    name = "worker",
+    srcs = glob(["worker/*.java"]),
+    deps = [
+        ":cas",
+        ":common",
+        ":instance",
+        ":stub-instance",
+        ":worker-resources",
+        "//src/main/protobuf:build_buildfarm_v1test_buildfarm_java_proto",
+        "@googleapis//:google_rpc_code_java_proto",
+        "@googleapis//:google_rpc_error_details_java_proto",
+        "@maven//:com_github_jnr_jffi_native",
+        "@maven//:com_github_jnr_jnr_constants",
+        "@maven//:com_github_jnr_jnr_ffi",
+        "@maven//:com_github_jnr_jnr_posix",
+        "@maven//:com_github_pcj_google_options",
+        "@maven//:com_github_serceman_jnr_fuse",
+        "@maven//:com_google_code_findbugs_jsr305",
+        "@maven//:com_google_guava_guava",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:com_google_protobuf_protobuf_java_util",
+        "@maven//:io_grpc_grpc_api",
+        "@maven//:io_grpc_grpc_context",
+        "@maven//:io_grpc_grpc_core",
+        "@maven//:io_grpc_grpc_netty",
+        "@maven//:io_grpc_grpc_protobuf",
+        "@maven//:io_grpc_grpc_stub",
+    ],
+)
+
+java_library(
+    name = "operationqueue-worker",
+    srcs = glob(["worker/operationqueue/*.java"]),
+    deps = [
+        ":cas",
+        ":common",
+        ":common-grpc",
+        ":instance",
+        ":stub-instance",
+        ":worker-resources",
+        ":worker",
+        "//src/main/protobuf:build_buildfarm_v1test_buildfarm_java_proto",
+        "@maven//:com_github_pcj_google_options",
+        "@maven//:com_google_code_findbugs_jsr305",
+        "@maven//:com_google_guava_guava",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:com_google_protobuf_protobuf_java_util",
+        "@maven//:io_grpc_grpc_api",
+        "@maven//:io_grpc_grpc_context",
+        "@maven//:io_grpc_grpc_core",
+        "@maven//:io_grpc_grpc_netty",
+        "@maven//:io_grpc_grpc_protobuf",
+        "@maven//:io_grpc_grpc_stub",
+    ],
+)
+
+java_library(
+    name = "cas",
+    srcs = glob(["cas/**/*.java"]),
+    runtime_deps = [
+        "@maven//:org_xerial_sqlite_jdbc",
+    ],
+    deps = [
+        ":common",
+        ":common-grpc",
+        ":stub-instance",
+        "//src/main/protobuf:build_buildfarm_v1test_buildfarm_java_proto",
+        "@googleapis//:google_bytestream_bytestream_java_grpc",
+        "@googleapis//:google_bytestream_bytestream_java_proto",
+        "@googleapis//:google_rpc_code_java_proto",
+        "@maven//:com_github_jnr_jnr_ffi",
+        "@maven//:com_googlecode_json_simple_json_simple",
+        "@maven//:com_google_code_findbugs_jsr305",
+        "@maven//:com_google_guava_guava",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:io_grpc_grpc_api",
+        "@maven//:io_grpc_grpc_context",
+        "@maven//:io_grpc_grpc_core",
+        "@maven//:io_grpc_grpc_netty",
+        "@maven//:io_grpc_grpc_protobuf",
+        "@maven//:io_grpc_grpc_stub",
+        "@remote_apis//:build_bazel_remote_execution_v2_remote_execution_java_grpc",
+        "@remote_apis//:build_bazel_remote_execution_v2_remote_execution_java_proto",
+    ],
+)
+
+java_library(
+    name = "ac",
+    srcs = glob(["ac/*.java"]),
+    deps = [
+        ":common",
+        "@maven//:com_google_guava_guava",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:io_grpc_grpc_api",
+        "@maven//:io_grpc_grpc_core",
+        "@remote_apis//:build_bazel_remote_execution_v2_remote_execution_java_grpc",
+        "@remote_apis//:build_bazel_remote_execution_v2_remote_execution_java_proto",
+    ],
 )
 
 java_binary(
@@ -89,11 +228,15 @@ java_binary(
 )
 
 container_image(
-    name = "buildfarm-operationqueue-worker.container",
-    base = "@java_image_base//image",
+    name = "rwc_buildfarm_worker_image",
+    base = "@rwc_build//image",
+    entrypoint = [
+        "/usr/bin/java",
+        "-jar"
+    ],
     cmd = [
         "buildfarm-operationqueue-worker_deploy.jar",
-        "/config/worker.config",
+        "/config/buildfarm_worker.config",
     ],
     # leverage the implicit target of the buildfarm-server to get a fat jar.
     # this is simply a workaround for the fact that we have so many dependencies,
@@ -104,6 +247,16 @@ container_image(
     ],
     tags = ["container"],
     visibility = ["//visibility:public"],
+)
+
+container_push(
+    name = "push_rwc_buildfarm_worker_image",
+    format = "Docker",
+    image = ":rwc_buildfarm_worker_image",
+    registry = "registry.abagy.com",
+    repository = "tools/rwc_buildfarm_worker",
+    tag = "latest",
+    tags = ["container"],
 )
 
 java_binary(
