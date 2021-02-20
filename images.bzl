@@ -24,7 +24,7 @@ def buildfarm_images():
 
     container_pull(
         name = "rwc_build",
-        registry = "registry.abagy.com",
+        registry = "eu.gcr.io/abagy-services-9b8f",
         repository = "tools/rwc_build",
         tag = "latest",
     )
